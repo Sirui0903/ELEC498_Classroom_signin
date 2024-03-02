@@ -1,0 +1,27 @@
+.nav {
+    background-color: rgb(8, 36, 79);
+}
+
+.secondNav {
+    height: 10vh;
+    display: flex;
+    justify-content: space-between;
+}
+
+// 图标
+.svg {
+  &>img{
+      width: 15rem;
+  }
+}
+
+// 登录按钮
+.logon {
+    color: white;
+    border-color: white;
+}
+
+.logon:hover {
+    border-color: rgb(241, 191, 66);
+    color: rgb(241, 191, 66);
+}

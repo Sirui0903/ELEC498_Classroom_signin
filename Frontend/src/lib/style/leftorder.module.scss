@@ -1,0 +1,9 @@
+.leftOne {
+    width: 18rem;
+    flex-shrink: 0;
+}
+
+.leftOne>div {
+    display: flex;
+    position: relative;
+}
