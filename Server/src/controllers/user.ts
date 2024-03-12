@@ -16,12 +16,13 @@ export class UserController {
   }
 
   @Get('getAllUser')
-  getAllUser(@Query() data: { currentPage?: number; singleTotal?: number }) {
-    return this.userService.getAllUser(data);
+  getAllUser() {
+    return this.userService.getAllUser();
   }
 
   @Post('editUserClass')
-  editUserClass(@Body() data: { uid: string; cid: string; oldCid?: string }) {
+  editUserClass(@Body() data: { uid: string; cid: string[] }) {
     return this.userService.editUserClass(data);
   }
+
 }

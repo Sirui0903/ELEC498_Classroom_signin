@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { user } from '../interface/user';
@@ -7,8 +13,8 @@ import { ClassService } from './class';
 @Injectable()
 export class UserService {
   constructor(
+    @Inject(forwardRef(() => ClassService)) private classService: ClassService,
     @InjectModel('users') private readonly userModel: Model<user>,
-    private classService: ClassService,
   ) {}
   async createUser(
     userData: user,
@@ -50,26 +56,69 @@ export class UserService {
     return await this.userModel.find({ _id: { $in: uids } }, { user_name: 1 });
   }
 
-  async getAllUser(data: { currentPage?: number; singleTotal?: number }) {
+  async getAllUser() {
     const res = await this.userModel
       .find(
         { permission: 'common' },
         { user_name: 1, class: 1, _id: 1, toc: 1 },
       )
       .sort({ toc: -1 });
+
+    // 等待所有的 Promise 完成
+    const resolvedNewRes = await Promise.all(
+      res.map(async (item: any) => {
+        const classData = await this.classService.findClassByIds(item.class);
+        const newClass = classData.map((classItem) => {
+          return classItem.content;
+        });
+        return {
+          user_name: item.user_name,
+          class: newClass,
+          _id: item._id,
+          toc: item.toc,
+        };
+      }),
+    );
+
     if (!res) {
       return { data: [] };
     } else {
-      return { data: res };
+      return { data: resolvedNewRes };
     }
   }
 
-  async editUserClass(data: { uid: string; cid: string; oldCid?: string }) {
+  async editUserClass(data: { uid: string; cid: string[] }) {
     const { uid, cid } = data;
+    const userData = await this.getClassByUid(uid);
     await this.userModel.updateOne(
-      { _id: uid }, // 查询条件，可以根据你的实际情况修改
-      { $set: { class: cid } }, // 更新操作，$set 用于设置字段值
+      { _id: uid },
+      {
+        $set: {
+          class: cid,
+        },
+      },
     );
-    await this.classService.addUserInClass(data);
+    await this.classService.addUserInClass({ ...data, oldCid: userData.class });
+    const classData = await this.classService.getAllClass();
+    const newUserData = await this.getAllUser();
+    return { classData, userData: newUserData };
+  }
+
+  async getClassByUid(uid: string) {
+    return this.userModel.findOne({ _id: uid }, { class: 1 });
+  }
+
+  async deleteUserClass(data: { uids: string[]; cid: string }) {
+    const { uids, cid } = data;
+    await this.userModel.updateMany(
+      {
+        _id: { $in: uids },
+      },
+      {
+        $pull: {
+          class: cid,
+        },
+      },
+    );
   }
 }

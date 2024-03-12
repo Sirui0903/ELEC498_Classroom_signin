@@ -27,4 +27,9 @@ export class SignController {
   getSignMessage(@Query() data: { qid: string }) {
     return this.signService.getSignMessage(data.qid);
   }
+
+  @Get('getClassSign')
+  getClassSign(@Query() data: { cid: string; time: number | undefined }) {
+    return this.signService.getClassSign(data);
+  }
 }

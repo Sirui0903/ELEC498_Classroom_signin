@@ -6,4 +6,5 @@ export interface postSignData extends Document {
   content: string;
   signs: string[];
   toc: Date;
+  classId: string;
 }

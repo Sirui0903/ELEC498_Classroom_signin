@@ -4,5 +4,5 @@ export const userSchema = new Schema({
   password: { type: String, required: true },
   permission: { type: String, required: true },
   toc: { type: Date, required: true, default: Date.now() },
-  class: { type: String, default: '' },
+  class: { type: Array, default: [] },
 });

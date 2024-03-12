@@ -18,4 +18,8 @@ export const signSchema = new Schema({
     required: true,
   },
   toc: { type: Date, required: true, default: Date.now() },
+  classId: {
+    required: true,
+    type: String,
+  },
 });
