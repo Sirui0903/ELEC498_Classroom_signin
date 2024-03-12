@@ -5,6 +5,7 @@ export type IPostSignProps = {
   creator: string;
   content: string;
   limit: Date;
+  classId: string;
 };
 export const postSign = async (props: IPostSignProps) => {
   return await axios.post(apiUrl + '/postSign', props);
@@ -26,6 +27,15 @@ export const getNewSign = async (props: {
 
 export const getSignMessage = async (props: { qid: string }) => {
   return await axios.get(apiUrl + '/getSignMessage', {
+    params: props,
+  });
+};
+
+export const getClassSign = async (props: {
+  cid: string;
+  time: number | undefined;
+}) => {
+  return await axios.get(apiUrl + '/getClassSign', {
     params: props,
   });
 };

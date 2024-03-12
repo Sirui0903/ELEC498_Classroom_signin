@@ -12,19 +12,21 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUsers } from '../../hook/homeState';
 import { IPostSignProps, postSign } from '../../api/sing';
 import { Qrcode } from '../qrcode';
 import Typography from '@mui/material/Typography';
 import { format } from 'date-fns';
 
-export function Student() {
+export function Student(props: { classData: any[] }) {
   const user = useUsers();
   const [open, setOpen] = useState(false);
   const [time, setTime] = useState(5);
   const [isSubmit, setIsSubmit] = useState(false);
   const contentRef = useRef('');
+  const [selectClass, setSelectClass] = useState('');
+  const { classData } = props;
 
   const handleClose = () => {
     setOpen(false);
@@ -51,6 +53,7 @@ export function Student() {
       creator: uid,
       content: randomString,
       limit: new Date(currentDate.getTime() + time * 60000),
+      classId: selectClass,
     };
     postSign(data)
       .then((res) => {
@@ -142,6 +145,38 @@ export function Student() {
                       <MenuItem value="9">9 minute</MenuItem>
                     </Select>
                   </FormControl>
+                  {classData.length ? (
+                    <FormControl sx={{ mt: 2, minWidth: 120 }}>
+                      <InputLabel htmlFor="max-width">Class</InputLabel>
+                      <Select
+                        autoFocus
+                        value={selectClass}
+                        label="Time limit"
+                        onChange={(e) => setSelectClass(String(e.target.value))}
+                      >
+                        {classData.map((item: any) => {
+                          return (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.content}
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <Box
+                      mt={'1rem'}
+                      width={'20rem'}
+                      bgcolor={'#f5f5f5'}
+                      p={2}
+                      borderRadius={4}
+                    >
+                      <Typography variant="body1" color="textSecondary">
+                        No classes are currently created, please go to the class
+                        management page to create one
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Box>
             )}

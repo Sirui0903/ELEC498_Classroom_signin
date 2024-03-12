@@ -27,6 +27,7 @@ export function Attendance() {
     currentPage: number;
     _id: string;
     signs: any[];
+    className: string;
   } | null>(null);
 
   const user = useUsers();
@@ -63,6 +64,8 @@ export function Attendance() {
             : 'overtime',
         qid: item._id,
         total: item.signs.length,
+        className: item.className,
+        classId: item.classId,
       };
     });
   }
@@ -122,6 +125,9 @@ export function Attendance() {
                       Status&nbsp;
                     </TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>
+                      ClassName&nbsp;
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>
                       Particulars&nbsp;
                     </TableCell>
                   </TableRow>
@@ -134,6 +140,11 @@ export function Attendance() {
                       <TableCell>{row.limit}</TableCell>
                       <TableCell>{row.toc}</TableCell>
                       <TableCell>{row.status}</TableCell>
+                      <TableCell>
+                        <Link href={`/class/${row.classId}?qid=${row.qid}`}>
+                          {row.className}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <Link href={`/attendance/${row.qid}`}>Leave for</Link>
                       </TableCell>

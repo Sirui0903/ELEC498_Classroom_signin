@@ -1,6 +1,6 @@
 import { Box } from '@mui/system';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Paper,
   Button,
@@ -13,13 +13,16 @@ import {
   Table,
   MenuItem,
   Select,
+  Checkbox,
+  OutlinedInput,
 } from '@mui/material';
 import Typography from '@mui/material/Typography';
-import { createClass } from '../../api/class';
+import { createClass, deleteClass, editClassName } from '../../api/class';
 import { ErrorMessage } from '../../lib/messages';
 import * as React from 'react';
 import FormControl from '@mui/material/FormControl';
 import { editUserClass } from '../../api/user';
+import ListItemText from '@mui/material/ListItemText';
 
 export const ClassBase = (props: any) => {
   const [classData, setClassData] = useState(props.classData);
@@ -27,20 +30,48 @@ export const ClassBase = (props: any) => {
   const [open, setOpen] = useState(false);
   const [className, setClassName] = useState('Class-1');
   const [isListOpen, setIsListOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState('');
-  const [selectUid, setSelectUid] = useState('');
-  const [selectCid, setSelectCid] = useState('');
+  const [selectedOption, setSelectedOption] = useState([]);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectEditObj, setSelectEditObj] = useState<{
+    content: string;
+    _id: string;
+  } | null>(null);
+  const selectUidRef = useRef('');
   const handleAddClass = () => {
     createClass(className)
       .then((res) => {
         if (res) {
           setClassData(res.data);
-          alert('success');
+          setOpen(false);
         }
+      })
+      .catch((error) => {
+        setOpen(false);
+        ErrorMessage(error);
+      });
+  };
+
+  const handleEdit = async () => {
+    if (!selectEditObj) return;
+    const { _id, content } = selectEditObj;
+    editClassName(selectEditObj)
+      .then(() => {
+        const updatedData = classData.map((item: any) => {
+          if (item._id === _id) {
+            return { ...item, content: content };
+          }
+          return item;
+        });
+        setClassData(updatedData);
+        handleEditClose();
       })
       .catch(ErrorMessage);
   };
 
+  const handleEditClose = () => {
+    setEditOpen(false);
+    setSelectEditObj(null);
+  };
   const handleDialogClose = () => {
     setOpen(false);
   };
@@ -50,29 +81,70 @@ export const ClassBase = (props: any) => {
   };
 
   const handleListClose = () => {
-    setSelectUid('');
     setIsListOpen(false);
-    setSelectCid('');
+    setSelectedOption([]);
+    selectUidRef.current = '';
   };
 
-  const handleListOpen = (_id: string, classId: string) => {
-    setSelectUid(_id);
+  const handleListOpen = (_id: string) => {
     setIsListOpen(true);
-    setSelectCid(classId);
+    selectUidRef.current = _id;
   };
   const handleAssign = () => {
-    const res = classData.filter((item: any) => {
-      return item.content === selectedOption;
-    });
-    const { _id } = res[0];
-    editUserClass({ uid: selectUid, cid: _id, oldCid: selectCid })
+    if (!selectUidRef.current) return;
+    if (!selectedOption.length) {
+      handleListClose();
+      return ErrorMessage('The current content cannot be empty');
+    }
+    editUserClass({ uid: selectUidRef.current, cid: selectedOption })
       .then((res) => {
+        const { data } = res;
+        const { classData, userData } = data;
+        setClassData(classData);
+        setUserData(userData);
         handleListClose();
-        alert('Success');
       })
-      .catch(ErrorMessage);
+      .catch((error) => {
+        handleListClose();
+        ErrorMessage(error);
+      });
   };
 
+  const handleChange = (event: any) => {
+    const {
+      target: { value },
+    } = event;
+    setSelectedOption(typeof value === 'string' ? value.split(',') : value);
+  };
+  const editClass = (_id: string) => {
+    const content = classData.find((item: any) => item._id === _id).content;
+    setSelectEditObj({ content, _id });
+    setEditOpen(true);
+  };
+
+  const ITEM_HEIGHT = 48;
+  const ITEM_PADDING_TOP = 8;
+  const MenuProps = {
+    PaperProps: {
+      style: {
+        maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+        width: 250,
+      },
+    },
+  };
+
+  const handleDelete = async (_id: string) => {
+    if (confirm('Are you sure to delete it?')) {
+      deleteClass({ cid: _id })
+        .then((res) => {
+          const { data } = res;
+          const { classData, userData } = data;
+          setClassData(classData);
+          setUserData(userData);
+        })
+        .catch(ErrorMessage);
+    }
+  };
   return (
     <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* 上半部分 */}
@@ -109,6 +181,9 @@ export const ClassBase = (props: any) => {
                   <TableCell sx={{ fontWeight: 'bold' }}>
                     Total Number of Students&nbsp;
                   </TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>
+                    Operation&nbsp;
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -121,6 +196,29 @@ export const ClassBase = (props: any) => {
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{row.content}</TableCell>
                       <TableCell>{row.users.length}</TableCell>
+                      <TableCell>
+                        <span
+                          style={{
+                            marginRight: '1rem',
+                            color: 'rgb(252, 85, 49)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => handleDelete(row._id)}
+                        >
+                          Delete
+                        </span>
+                        <span
+                          style={{
+                            color: 'rgb(71, 148, 255)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => {
+                            editClass(row._id);
+                          }}
+                        >
+                          Edit
+                        </span>
+                      </TableCell>
                     </TableRow>
                   ),
                 )}
@@ -187,22 +285,20 @@ export const ClassBase = (props: any) => {
               <TableBody>
                 {userData.data.map(
                   (
-                    row: { user_name: string; class: string; _id: string },
+                    row: { user_name: string; class: string[]; _id: string },
                     index: number,
                   ) => (
                     <TableRow key={row._id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{row.user_name}</TableCell>
                       <TableCell>
-                        {row.class
-                          ? classData.find(
-                              (item: any) => item._id === row.class,
-                            ).content
+                        {row.class.length
+                          ? row.class.join(',')
                           : 'Not assigned'}
                       </TableCell>
                       <TableCell
                         sx={{ color: '#ff9800', cursor: 'pointer' }}
-                        onClick={() => handleListOpen(row._id, row.class)}
+                        onClick={() => handleListOpen(row._id)}
                       >
                         Assign
                       </TableCell>
@@ -220,13 +316,30 @@ export const ClassBase = (props: any) => {
           <Typography variant="h6">Assign Class</Typography>
           <FormControl fullWidth margin="normal">
             <Select
+              multiple
               value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
+              onChange={handleChange}
+              input={<OutlinedInput label="Tag" />}
+              renderValue={(selected) => {
+                return classData
+                  .filter((item: any) => {
+                    // @ts-ignore
+                    return selected.includes(item._id);
+                  })
+                  .map((item: any) => item.content)
+                  .join(',');
+              }}
+              MenuProps={MenuProps}
             >
-              {/* Your list of classes */}
               {classData.map((cls: any) => (
-                <MenuItem key={cls._id} value={cls.content}>
-                  {cls.content}
+                <MenuItem key={cls._id} value={cls._id}>
+                  <Checkbox
+                    checked={
+                      // @ts-ignore
+                      selectedOption.indexOf(cls._id) > -1
+                    }
+                  />
+                  <ListItemText primary={cls.content} />
                 </MenuItem>
               ))}
             </Select>
@@ -253,7 +366,7 @@ export const ClassBase = (props: any) => {
             value={className}
             onChange={(e) => setClassName(e.target.value)}
           />
-          <Box mt={2} display="flex" justifyContent="flex-end">
+          <Box mt={2} display="flex" justifyContent={'space-around'}>
             <Button onClick={handleDialogClose} sx={{ mr: 1 }}>
               Cancel
             </Button>
@@ -262,6 +375,33 @@ export const ClassBase = (props: any) => {
               color="primary"
               onClick={handleAddClass}
             >
+              Submit
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
+      <Dialog open={editOpen} onClose={handleEditClose}>
+        <Box p={2}>
+          <Typography variant="h6">Edit Class Name</Typography>
+          <TextField
+            fullWidth
+            margin="normal"
+            value={selectEditObj ? selectEditObj.content : ''}
+            onChange={(e) => {
+              // @ts-ignore
+              const { _id } = selectEditObj;
+              setSelectEditObj({
+                _id,
+                content: e.target.value,
+              });
+            }}
+          />
+          <Box mt={2} display="flex" justifyContent={'space-around'}>
+            <Button onClick={handleEditClose} sx={{ mr: 1 }}>
+              Cancel
+            </Button>
+            <Button variant="contained" color="primary" onClick={handleEdit}>
               Submit
             </Button>
           </Box>

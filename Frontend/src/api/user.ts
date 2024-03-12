@@ -27,10 +27,6 @@ export const getAllUser = async (props: {
   });
 };
 
-export const editUserClass = async (props: {
-  uid: string;
-  cid: string;
-  oldCid?: string;
-}) => {
+export const editUserClass = async (props: { uid: string; cid: string[] }) => {
   return await axios.post(apiUrl + '/editUserClass', props);
 };
